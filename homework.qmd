@@ -7,9 +7,9 @@ author:
    - name: Имя Студента 2
      url: https://github.com/github-username-of-author-2
      roles: Лабораторные измерения
-   - name: Имя Студента 3
-     url: https://github.com/github-username-of-author-2
-     roles: Лабораторные измерения
+   - name: Попова Ангелина
+     url: https://github.com/gelieum
+     roles: Витальные показатели
 format:
   html:
     embed-resources: true
