@@ -178,36 +178,75 @@ dm
 - `VISIT` — визит исследования
 
 1.  Импортируйте данные.
-2.  Какой формат у этих данных: длинный или широкий? Объясните ответ. Какое минимальное и максимальное число строк на одного участника?
-3.  На каких визитах измеряли рост (`HEIGHT`) и вес (`WEIGHT`)?
 
 ```{r}
-# read_csv
-# select, rename
-# count
+vs_data <- read_csv("data/vs.csv")
+vs_data
+```
+```{r}
+vs <- vs_data |>
+  select(USUBJID, VSTESTCD, VSTEST, VSSTRESN, VISIT) |>
+  rename(ID = USUBJID)
 ```
 
+2.  Какой формат у этих данных: длинный или широкий? Объясните ответ. Какое минимальное и максимальное число строк на одного участника?
+
+Формат данных длинный, т.к. на одного пациента приходится несколько строк (наблюдений).
+Минимальное число строк на одного участинка - 21, максимальное - 71
+```{r}
+vs |>
+  count(ID) |>
+  summarise(min_row_n = min(n), max_row_n = max(n))
+```
+3.  На каких визитах измеряли рост (`HEIGHT`) и вес (`WEIGHT`)?
+
+Рост и вес измеряли на всех визитах, которые есть в датасете
+```{r}
+vs |>
+  count(VISIT) # какие визиты есть в датасете
+
+vs |>
+  filter(VSTESTCD == 'HEIGHT' | VSTESTCD == 'WEIGHT') |>
+  count(VISIT) # визиты, удовлетворяющие условию
+```
 4.  Оставьте только участников своей команды. Используйте для этого датафрейм `dm`, созданный координатором в разделе 1.1.
-5.  Оставьте измерения роста и веса на визите `SCREENING 1`, а также измерения веса на визите вашей команды.
+```{r}
+vs_clean <- vs |>
+  semi_join(dm, by = 'ID')
+```
+
+5.  Оставьте измерения роста и веса на визите `SCREENING 1`, а также измерения веса на визите вашей команды (для нашей команды - `WEEK 2`).
 
 ```{r}
-# left_join, semi_join
-# filter
+vs_clean <- vs_clean |>
+  filter(VISIT == "SCREENING 1" & (VSTESTCD == 'HEIGHT' | VSTESTCD == 'WEIGHT') |
+           VISIT == "WEEK 2" & VSTESTCD == 'WEIGHT')
 ```
 
 6.  Переведите данные в широкий формат и сохраните в переменной `vs_wide`. В датафрейме должны быть столбцы для всех трёх отобранных измерений. Подсказка: значение, которое вы передаёте в `names_from`, должно быть уникальным для каждого участника. Проверьте это до вызова `pivot_wider()`. Идентификатор участника должен находиться в столбце с названием `ID`.
 
 ```{r}
-# select
-# distinct, count
-# str_c, paste0
-# pivot_wider
+vs_wide <- vs_clean |>
+  mutate(
+    VISIT = str_replace_all(VISIT, " ", "_"),
+    test_visit = str_c(VSTESTCD, VISIT, sep = "_")
+  ) |>
+  select(ID, test_visit, VSSTRESN)
+
+vs_wide |>
+  count(ID, test_visit)
+
+vs_wide
+```
+```{r}
+vs_wide <- vs_wide |>
+  pivot_wider(names_from = test_visit, values_from = VSSTRESN)
 ```
 
 7.  Проверьте, что `vs_wide` содержит ровно одну строку на участника.
 
 ```{r}
-# stopifnot, stop
+stopifnot(nrow(vs_wide) == n_distinct(vs_wide$ID))
 ```
 
 ### 1.4. Генотип APOE
