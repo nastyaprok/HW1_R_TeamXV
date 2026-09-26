@@ -153,14 +153,14 @@ lb <- lb_data |>
 Это длинный формат данных, так как каждое измерение для одного пациента имеет свою строчку.
 
 ```{r}
-lb |> 
+lb |>
   count(ID) |>
   summarise(
     `Минимальное число строк` = min(n),
     `Максимальное число строк` = max(n)
   ) |>
-    flextable() |>
-    autofit()
+  flextable() |>
+  autofit()
 ```
 
 3.  На каких визитах выполняли измерения и какие лабораторные показатели измеряли? Отдельно выведите или подчеркните визиты, на которых измеряли витамин B12.
@@ -168,21 +168,26 @@ lb |>
 ```{r}
 #Визиты, на ктр выполняли измерения
 lb |>
-  distinct(VISIT) 
+  distinct(VISIT)
 
 #Лабораторные показатели, ктр измеряли
-lb |> 
-  distinct(LBTESTCD, LBTEST) 
+lb |>
+  distinct(LBTESTCD, LBTEST)
 
 #Визиты, на ктр измеряли B12
 lb |>
   filter(LBTESTCD == "VITB12") |>
-  distinct(VISIT)  
+  distinct(VISIT)
 
 #Если нужно посмотреть какие измерения были в какой визит
 
 lb |>
-  mutate(VISIT = factor(VISIT, c("BASELINE", "SCREENING 1", "WEEK 2", "WEEK 4", "WEEK 8", "WEEK 12"))) |>
+  mutate(
+    VISIT = factor(
+      VISIT,
+      c("BASELINE", "SCREENING 1", "WEEK 2", "WEEK 4", "WEEK 8", "WEEK 12")
+    )
+  ) |>
   group_by(VISIT) |>
   summarise(
     `Лабораторные показатели` = paste(sort(unique(LBTEST)), collapse = ", "),
@@ -207,15 +212,15 @@ lb_clear <- lb |>
 | 15 | Xanomeline Low Dose, Xanomeline High Dose | HGB, VITB12 | WEEK 2 |
 
 ```{r}
-lb_clear <- lb_clear |> 
+lb_clear <- lb_clear |>
   filter(LBTESTCD %in% c("HGB", "VITB12") & VISIT == "SCREENING 1")
 ```
 
 6.  После фильтрации выведите число измерений каждого показателя.
 
 ```{r}
-lb_clear |> 
-  count(LBTEST)|>
+lb_clear |>
+  count(LBTEST) |>
   rename(
     `Показатель` = LBTEST,
     `Число измерений` = n
@@ -235,8 +240,7 @@ lb_wide <- lb_clear |>
   pivot_wider(
     names_from = LBTESTCD,
     values_from = LBSTRESN
-  ) 
-
+  )
 ```
 
 8.  Проверьте, что `lb_wide` содержит ровно одну строку на одного участника.
@@ -296,8 +300,11 @@ vs_clean <- vs |>
 
 ```{r}
 vs_clean <- vs_clean |>
-  filter(VISIT == "SCREENING 1" & (VSTESTCD == 'HEIGHT' | VSTESTCD == 'WEIGHT') |
-           VISIT == "WEEK 2" & VSTESTCD == 'WEIGHT')
+  filter(
+    VISIT == "SCREENING 1" &
+      (VSTESTCD == 'HEIGHT' | VSTESTCD == 'WEIGHT') |
+      VISIT == "WEEK 2" & VSTESTCD == 'WEIGHT'
+  )
 ```
 
 6.  Переведите данные в широкий формат и сохраните в переменной `vs_wide`. В датафрейме должны быть столбцы для всех трёх отобранных измерений. Подсказка: значение, которое вы передаёте в `names_from`, должно быть уникальным для каждого участника. Проверьте это до вызова `pivot_wider()`. Идентификатор участника должен находиться в столбце с названием `ID`.
@@ -399,6 +406,7 @@ dm_gf |>
     .after = GFSYM
   )
 ```
+
 6.  Выведите число участников с каждым генотипом APOE.
 
 ```{r}
@@ -466,14 +474,16 @@ stopifnot(
 После объединения веток отчёт должен создавать четыре датафрейма: `dm`, `lb_wide`, `vs_wide` и `gf_wide`. Все датафреймы должны быть в широком формате: по одной строке на участника. Присоедините `lb_wide`, `vs_wide` и `gf_wide` к `dm` по столбцу `ID`. Сохраните результат в отдельную переменную для дальнейшего анализа.
 
 ```{r}
-# left_join
+data_join <- reduce(list(dm, lb_wide, vs_wide, gf_wide), left_join, by = 'ID')
+data_join
 ```
 
 Проверьте, что число строк в результате совпадает с числом участников в `dm` и что не появилось повторяющихся значений `ID`.
 
 ```{r}
-# count, nrow
-# stopifnot, stop
+stopifnot(
+  n_distinct(data_join$ID) == nrow(dm)
+)
 ```
 
 Для каждого столбца итогового датафрейма выведите число непустых и число пропущенных значений.
@@ -532,21 +542,110 @@ stopifnot(
 ### 3.3. Анализ генотипа
 
 1.  Для каждой группы лечения рассчитайте число и процент участников с каждым генотипом APOE.
+
+```{r}
+data_join |>
+  count(APOE_genotype) |>
+  mutate(APOE_genotype_percent = n / sum(n) * 100)
+```
+
 2.  В одной таблице рассчитайте статистики BMI и лабораторных показателей в зависимости от генотипа APOE:
     - число непустых значений
     - число пропущенных значений
     - среднее (стандартное отклонение)
     - медиана \[25-й, 75-й процентили\]
     - минимум - максимум
-3.  Оформите результаты в `flextable` с заголовками на русском или английском языке, укажите единицы измерения.
-4.  Кратко прокомментируйте результаты, приведённые в таблицах.
 
 ```{r}
-# mutate, case_when, group_by, summarise
-# n, mean, median, sd, quantile, IQR
-# flextable
-# см. документацию https://davidgohel.github.io
+data_join |>
+  mutate(
+    BMI = WEIGHT_SCREENING_1 / (HEIGHT_SCREENING_1 / 100)^2,
+    .after = WEIGHT_SCREENING_1
+  ) |>
+  pivot_longer(
+    cols = c(BMI, HGB, VITB12),
+    names_to = 'INDICATOR',
+    values_to = 'VALUE'
+  ) |>
+  group_by(INDICATOR, APOE_genotype) |>
+  summarise(
+    n_valid_val = sum(!is.na(VALUE)),
+    n_missed_val = sum(is.na(VALUE)),
+    mean_val = mean(VALUE, na.rm = T),
+    sd_val = sd(VALUE, na.rm = T),
+    median_val = median(VALUE, na.rm = T),
+    q25_val = quantile(VALUE, 0.25, na.rm = TRUE),
+    q75_val = quantile(VALUE, 0.75, na.rm = TRUE),
+    min_val = min(VALUE, na.rm = TRUE),
+    max_val = max(VALUE, na.rm = TRUE),
+    .groups = "drop"
+  )
 ```
+
+3.  Оформите результаты в `flextable` с заголовками на русском или английском языке, укажите единицы измерения.
+
+```{r}
+data_join |>
+  mutate(
+    BMI = WEIGHT_SCREENING_1 / (HEIGHT_SCREENING_1 / 100)^2,
+    .after = WEIGHT_SCREENING_1
+  ) |>
+  pivot_longer(
+    cols = c(BMI, HGB, VITB12),
+    names_to = 'INDICATOR',
+    values_to = 'VALUE'
+  ) |>
+  group_by(INDICATOR, APOE_genotype) |>
+  summarise(
+    n_valid_val = sum(!is.na(VALUE)),
+    n_missed_val = sum(is.na(VALUE)),
+    mean_val = mean(VALUE, na.rm = T),
+    sd_val = sd(VALUE, na.rm = T),
+    median_val = median(VALUE, na.rm = T),
+    q25_val = quantile(VALUE, 0.25, na.rm = TRUE),
+    q75_val = quantile(VALUE, 0.75, na.rm = TRUE),
+    min_val = min(VALUE, na.rm = TRUE),
+    max_val = max(VALUE, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    mean_sd = sprintf('%.2f (%.2f)', mean_val, sd_val),
+    median_iqr = sprintf('%.2f [%.2f, %.2f]', median_val, q25_val, q75_val),
+    min_max = sprintf('%.2f – %.2f', min_val, max_val)
+  ) |>
+  select(
+    INDICATOR,
+    APOE_genotype,
+    n_valid_val,
+    n_missed_val,
+    mean_sd,
+    median_iqr,
+    min_max
+  ) |>
+  as_grouped_data(groups = "INDICATOR") |>
+  flextable() |>
+  set_header_labels(
+    APOE_genotype = 'Генотип APOE',
+    n_valid_val = 'Число непустых',
+    n_missed_val = 'Число пропусков',
+    mean_sd = 'Среднее (Станд.Откл.)',
+    median_iqr = 'Медиана [25-й, 75-й процентили]',
+    min_max = 'Минимум – Максимум'
+  ) |>
+  add_header_lines(
+    "BMI (кг/м²) и лабораторные показатели в зависимости от генотипа APOE"
+  ) |>
+  align(align = "center", part = "all") |>
+  autofit()
+```
+
+4.  Кратко прокомментируйте результаты, приведённые в таблицах.
+
+Для лабораторных показатели показателей и BMI практически отсутствуют пропущенные значения. Выборка характеризуется преобладанием гомозигот ε3/ε3  и гетерозигот ε3/ε4 по генотипу APOE.
+Медианный BMI почти во всех группах находится в пределах нормы [18.5, 25) кг/м².
+Уровень гемоглобина (HGB) также стабилен и не различается между генотипами.
+Концентрация витамина B12 имеет широкий разброс.
+Никакой явновыраженной связи между генотипом APOE и исследованными показателями (индексом массы тела, гемоглобином и витамином B12) в выборке не наблюдается.
 
 ## 4. Дополнительные задания
 
