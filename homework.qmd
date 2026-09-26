@@ -4,8 +4,8 @@ author:
    - name: Прокопенко Анастасия
      url: https://github.com/nastyaprok
      roles: Координатор, gf
-   - name: Имя Студента 2
-     url: https://github.com/github-username-of-author-2
+   - name: Салова Варвара
+     url: https://github.com/salovavd
      roles: Лабораторные измерения
    - name: Попова Ангелина
      url: https://github.com/gelieum
@@ -136,22 +136,92 @@ dm
 - `VISIT` — визит измерения
 
 1.  Импортируйте данные.
+
+```{r}
+lb_data <- read_csv("data/lb.csv")
+lb_data
+```
+
+```{r}
+lb <- lb_data |>
+  select(USUBJID, LBTESTCD, LBTEST, LBSTRESN, VISIT) |>
+  rename(ID = USUBJID)
+```
+
 2.  Какой формат у этих данных: длинный или широкий? Объясните ответ. Какое минимальное и максимальное число строк на одного пациента?
+
+Это длинный формат данных, так как каждое измерение для одного пациента имеет свою строчку.
+
+```{r}
+lb |> 
+  count(ID) |>
+  summarise(
+    `Минимальное число строк` = min(n),
+    `Максимальное число строк` = max(n)
+  ) |>
+    flextable() |>
+    autofit()
+```
+
 3.  На каких визитах выполняли измерения и какие лабораторные показатели измеряли? Отдельно выведите или подчеркните визиты, на которых измеряли витамин B12.
 
 ```{r}
-# read_csv
-# select, rename
-# distinct, count
+#Визиты, на ктр выполняли измерения
+lb |>
+  distinct(VISIT) 
+
+#Лабораторные показатели, ктр измеряли
+lb |> 
+  distinct(LBTESTCD, LBTEST) 
+
+#Визиты, на ктр измеряли B12
+lb |>
+  filter(LBTESTCD == "VITB12") |>
+  distinct(VISIT)  
+
+#Если нужно посмотреть какие измерения были в какой визит
+
+lb |>
+  mutate(VISIT = factor(VISIT, c("BASELINE", "SCREENING 1", "WEEK 2", "WEEK 4", "WEEK 8", "WEEK 12"))) |>
+  group_by(VISIT) |>
+  summarise(
+    `Лабораторные показатели` = paste(sort(unique(LBTEST)), collapse = ", "),
+    `Измеряли витамин B12` = if_else("VITB12" %in% LBTESTCD, "Да", "Нет")
+  ) |>
+  ungroup() |>
+  flextable() |>
+  autofit()
 ```
 
 4.  Оставьте только участников своей команды. Используйте для этого датафрейм `dm`, созданный координатором в разделе 1.1.
+
+```{r}
+lb_clear <- lb |>
+  semi_join(dm, by = "ID")
+```
+
 5.  Оставьте только два лабораторных показателя своей команды, измеренных на визите `SCREENING 1`.
+
+| Команда | Группы лечения (`ARM`) | Лабораторные показатели (`LBTESTCD`) | Визит для веса (`VISIT`) |
+|---|---|---|---|
+| 15 | Xanomeline Low Dose, Xanomeline High Dose | HGB, VITB12 | WEEK 2 |
+
+```{r}
+lb_clear <- lb_clear |> 
+  filter(LBTESTCD %in% c("HGB", "VITB12") & VISIT == "SCREENING 1")
+```
+
 6.  После фильтрации выведите число измерений каждого показателя.
 
 ```{r}
-# left_join, semi_join
-# filter
+lb_clear |> 
+  count(LBTEST)|>
+  rename(
+    `Показатель` = LBTEST,
+    `Число измерений` = n
+  ) |>
+  flextable() |>
+  autofit()
 ```
 
 7.  Переведите данные в широкий формат и сохраните в переменную `lb_wide`. В датафрейме должна быть одна строка на одного участника и по крайней мере два столбца с показателями вашей команды. Идентификатор участника должен находиться в столбце с названием `ID`.
@@ -160,12 +230,19 @@ dm
 # select
 # pivot_wider
 # distinct, count
+lb_wide <- lb_clear |>
+  select(ID, LBTESTCD, LBSTRESN) |>
+  pivot_wider(
+    names_from = LBTESTCD,
+    values_from = LBSTRESN
+  ) 
+
 ```
 
 8.  Проверьте, что `lb_wide` содержит ровно одну строку на одного участника.
 
 ```{r}
-# stopifnot, stop
+stopifnot(nrow(lb_wide) == n_distinct(lb_wide$ID))
 ```
 
 ### 1.3. Витальные показатели
