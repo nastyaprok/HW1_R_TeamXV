@@ -502,18 +502,168 @@ stopifnot(
     - среднее (стандартное отклонение)
     - медиана \[25-й, 75-й процентили\]
     - минимум - максимум
-2.  Постройте такую же таблицу для носителей и неносителей аллеля ε4.
 3.  Оформите результаты в таблицы `flextable` с заголовками на русском или английском языке с указанием единиц измерения.
-4.  Кратко прокомментируйте результаты, приведённые в таблицах.
+```{r}
+#Уточним единицы измерения и названия столбцов в объединенных данных
+lb_data |>
+  distinct(LBTESTCD, LBTEST, LBSTRESU)
+
+colnames(data_join)
+```
 
 ```{r}
-# mutate, case_when, group_by, summarise
-# n, mean, median, sd, quantile, IQR
-
-# round, str_c, paste0
-# flextable
-# см. документацию https://davidgohel.github.io
+data_join |>
+  select(ID, ARM.x, HGB, VITB12) |>
+  pivot_longer(
+    cols = c(HGB, VITB12),
+    names_to = "LBTESTCD",
+    values_to = "VALUE"
+  )  |>
+        group_by(ARM.x, LBTESTCD) |>
+    summarise(
+    n = sum(!is.na(VALUE)),
+    n_missing = sum(is.na(VALUE)),
+    mean = mean(VALUE, na.rm = TRUE),
+    sd = sd(VALUE, na.rm = TRUE),
+    median = median(VALUE, na.rm = TRUE),
+    q1 = quantile(VALUE, 0.25, na.rm = TRUE),
+    q3 = quantile(VALUE, 0.75, na.rm = TRUE),
+    min = min(VALUE, na.rm = TRUE),
+    max = max(VALUE, na.rm = TRUE)
+  ) |>  ungroup() |>
+  mutate(
+    `Лабораторный показатель` = case_when(
+      LBTESTCD == "HGB" ~ "Гемоглобин, ммоль/л",
+      LBTESTCD == "VITB12" ~ "Витамин B12, пмоль/л"
+    ),
+    `Среднее (SD)` = str_c(
+      round(mean, 2),
+      " (", round(sd, 2), ")"
+    ),
+    `Медиана [Q1, Q3]` = str_c(
+      round(median, 2),
+      " [", round(q1, 2),
+      ", ", round(q3, 2), "]"
+    ),
+    `Минимум – Максимум` = str_c(
+      round(min, 2),
+      " – ", round(max, 2)
+    )
+  ) |>
+  select(
+    `Группа лечения` = ARM.x,
+    `Лабораторный показатель`,
+    `Число непустых значений` = n,
+    `Число пропусков` = n_missing,
+    `Среднее (SD)`,
+    `Медиана [Q1, Q3]`,
+    `Минимум – Максимум`
+  ) |>
+  flextable() |>
+   set_caption("Лабораторные показатели в зависимости от группы лечения") |>
+  merge_v(j = "Группа лечения") |>
+  valign(j = "Группа лечения", valign = "top") |>
+  align(j = 3:7, align = "center", part = "all") |>
+  autofit()
 ```
+
+2.  Постройте такую же таблицу для носителей и неносителей аллеля ε4.
+
+```{r}
+#Зададим статус по наличию аллеля ε4 и проверим получившийся результат
+
+data_join |>
+  count(APOE_genotype)
+
+data_join |>
+  select(ID, APOE_genotype, HGB, VITB12) |>
+    mutate( E4 = case_when(
+    APOE_genotype %in% c("ε3/ε4", "ε2/ε4", "ε4/ε4") ~ "Носитель ε4",
+    APOE_genotype %in% c("ε3/ε3", "ε2/ε3") ~ "Неноситель ε4"
+    )
+    ) |>
+count(E4, APOE_genotype)
+
+```
+
+```{r}
+data_join |>
+  select(ID, APOE_genotype, HGB, VITB12) |>
+  pivot_longer(
+    cols = c(HGB, VITB12),
+    names_to = "LBTESTCD",
+    values_to = "VALUE"
+  )  |>
+    mutate( E4 = case_when(
+    APOE_genotype %in% c("ε3/ε4", "ε2/ε4", "ε4/ε4") ~ "Носитель ε4",
+    APOE_genotype %in% c("ε3/ε3", "ε2/ε3") ~ "Неноситель ε4"
+    )
+    ) |>
+    mutate(
+  E4 = factor(E4,levels = c("Носитель ε4", "Неноситель ε4"))
+  ) |>
+    group_by(E4, LBTESTCD) |>
+    summarise(
+    n = sum(!is.na(VALUE)),
+    n_missing = sum(is.na(VALUE)),
+    mean = mean(VALUE, na.rm = TRUE),
+    sd = sd(VALUE, na.rm = TRUE),
+    median = median(VALUE, na.rm = TRUE),
+    q1 = quantile(VALUE, 0.25, na.rm = TRUE),
+    q3 = quantile(VALUE, 0.75, na.rm = TRUE),
+    min = min(VALUE, na.rm = TRUE),
+    max = max(VALUE, na.rm = TRUE)
+  ) |>  ungroup() |>
+  mutate(
+    `Лабораторный показатель` = case_when(
+      LBTESTCD == "HGB" ~ "Гемоглобин, ммоль/л",
+      LBTESTCD == "VITB12" ~ "Витамин B12, пмоль/л"
+    ),
+    `Среднее (SD)` = str_c(
+      round(mean, 2),
+      " (", round(sd, 2), ")"
+    ),
+    `Медиана [Q1, Q3]` = str_c(
+      round(median, 2),
+      " [", round(q1, 2),
+      ", ", round(q3, 2), "]"
+    ),
+    `Минимум – Максимум` = str_c(
+      round(min, 2),
+      " – ", round(max, 2)
+    )
+  ) |>
+  select(
+    `Статус` = E4,
+    `Лабораторный показатель`,
+    `Число непустых значений` = n,
+    `Число пропусков` = n_missing,
+    `Среднее (SD)`,
+    `Медиана [Q1, Q3]`,
+    `Минимум – Максимум`
+  ) |>
+  flextable() |>
+   set_caption("Лабораторные показатели для носителей и неносителей аллеля ε4") |>
+  merge_v(j = "Статус") |>
+  valign(j = "Статус", valign = "top") |>
+  align(j = 3:7, align = "center", part = "all") |>
+  autofit()
+
+```
+
+4.  Кратко прокомментируйте результаты, приведённые в таблицах.
+
+Практически нет пропусков в лабораторных показателях.
+
+В зависимости от группы лечения:
+- Гемоглобин: среднее значение и медиана выше в группе с высокой дозой, при этом разброс практически одинаковый. Диапазоны значений перекрываются, но при высокой дозе смещены в сторону более высоких значений.
+- Витамин В12: среднее значение и медиана несколько выше в группе с высокой дозой, но квартили очень близки. При этом показатель характеризуется довольно большом разбросом. 
+
+Для носителей и неносителей аллеля ε4:
+- Гемоглобин: показатели у носителей смещены в сторону больших заначений, разброс примерно одинаковый.
+- Витамин В12: среднее значение и медиана выше у носителей аллели ε4, одинаковый sd, а верхний квартиль совпадает. 
+
+Результаты по витамину В12 вариабельнее, чем по гемоглобину.
 
 ### 3.2. Анализ витальных показателей
 
