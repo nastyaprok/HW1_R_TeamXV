@@ -479,9 +479,8 @@ data_join <- reduce(list(dm, lb_wide, vs_wide, gf_wide), left_join, by = 'ID')
 data_join
 ```
 ```{r}
-data_join <- data_join |> 
-  select(-ends_with(".y")
-  ) |>
+data_join <- data_join |>
+  select(-ends_with(".y")) |>
   rename(
     AGE = AGE.x,
     SEX = SEX.x,
@@ -530,9 +529,9 @@ data_join |>
     cols = c(HGB, VITB12),
     names_to = "LBTESTCD",
     values_to = "VALUE"
-  )  |>
-        group_by(ARM, LBTESTCD) |>
-    summarise(
+  ) |>
+  group_by(ARM, LBTESTCD) |>
+  summarise(
     n = sum(!is.na(VALUE)),
     n_missing = sum(is.na(VALUE)),
     mean = mean(VALUE, na.rm = TRUE),
@@ -542,7 +541,8 @@ data_join |>
     q3 = quantile(VALUE, 0.75, na.rm = TRUE),
     min = min(VALUE, na.rm = TRUE),
     max = max(VALUE, na.rm = TRUE)
-  ) |>  ungroup() |>
+  ) |>
+  ungroup() |>
   mutate(
     `Лабораторный показатель` = case_when(
       LBTESTCD == "HGB" ~ "Гемоглобин, ммоль/л",
@@ -550,16 +550,22 @@ data_join |>
     ),
     `Среднее (SD)` = str_c(
       round(mean, 2),
-      " (", round(sd, 2), ")"
+      " (",
+      round(sd, 2),
+      ")"
     ),
     `Медиана [Q1, Q3]` = str_c(
       round(median, 2),
-      " [", round(q1, 2),
-      ", ", round(q3, 2), "]"
+      " [",
+      round(q1, 2),
+      ", ",
+      round(q3, 2),
+      "]"
     ),
     `Минимум – Максимум` = str_c(
       round(min, 2),
-      " – ", round(max, 2)
+      " – ",
+      round(max, 2)
     )
   ) |>
   select(
@@ -572,7 +578,7 @@ data_join |>
     `Минимум – Максимум`
   ) |>
   flextable() |>
-   set_caption("Лабораторные показатели в зависимости от группы лечения") |>
+  set_caption("Лабораторные показатели в зависимости от группы лечения") |>
   merge_v(j = "Группа лечения") |>
   valign(j = "Группа лечения", valign = "top") |>
   align(j = 3:7, align = "center", part = "all") |>
@@ -589,13 +595,13 @@ data_join |>
 
 data_join |>
   select(ID, APOE_genotype, HGB, VITB12) |>
-    mutate( E4 = case_when(
-    APOE_genotype %in% c("ε3/ε4", "ε2/ε4", "ε4/ε4") ~ "Носитель ε4",
-    APOE_genotype %in% c("ε3/ε3", "ε2/ε3") ~ "Неноситель ε4"
+  mutate(
+    E4 = case_when(
+      APOE_genotype %in% c("ε3/ε4", "ε2/ε4", "ε4/ε4") ~ "Носитель ε4",
+      APOE_genotype %in% c("ε3/ε3", "ε2/ε3") ~ "Неноситель ε4"
     )
-    ) |>
-count(E4, APOE_genotype)
-
+  ) |>
+  count(E4, APOE_genotype)
 ```
 
 ```{r}
@@ -605,17 +611,18 @@ data_join |>
     cols = c(HGB, VITB12),
     names_to = "LBTESTCD",
     values_to = "VALUE"
-  )  |>
-    mutate( E4 = case_when(
-    APOE_genotype %in% c("ε3/ε4", "ε2/ε4", "ε4/ε4") ~ "Носитель ε4",
-    APOE_genotype %in% c("ε3/ε3", "ε2/ε3") ~ "Неноситель ε4"
-    )
-    ) |>
-    mutate(
-  E4 = factor(E4,levels = c("Носитель ε4", "Неноситель ε4"))
   ) |>
-    group_by(E4, LBTESTCD) |>
-    summarise(
+  mutate(
+    E4 = case_when(
+      APOE_genotype %in% c("ε3/ε4", "ε2/ε4", "ε4/ε4") ~ "Носитель ε4",
+      APOE_genotype %in% c("ε3/ε3", "ε2/ε3") ~ "Неноситель ε4"
+    )
+  ) |>
+  mutate(
+    E4 = factor(E4, levels = c("Носитель ε4", "Неноситель ε4"))
+  ) |>
+  group_by(E4, LBTESTCD) |>
+  summarise(
     n = sum(!is.na(VALUE)),
     n_missing = sum(is.na(VALUE)),
     mean = mean(VALUE, na.rm = TRUE),
@@ -625,7 +632,8 @@ data_join |>
     q3 = quantile(VALUE, 0.75, na.rm = TRUE),
     min = min(VALUE, na.rm = TRUE),
     max = max(VALUE, na.rm = TRUE)
-  ) |>  ungroup() |>
+  ) |>
+  ungroup() |>
   mutate(
     `Лабораторный показатель` = case_when(
       LBTESTCD == "HGB" ~ "Гемоглобин, ммоль/л",
@@ -633,16 +641,22 @@ data_join |>
     ),
     `Среднее (SD)` = str_c(
       round(mean, 2),
-      " (", round(sd, 2), ")"
+      " (",
+      round(sd, 2),
+      ")"
     ),
     `Медиана [Q1, Q3]` = str_c(
       round(median, 2),
-      " [", round(q1, 2),
-      ", ", round(q3, 2), "]"
+      " [",
+      round(q1, 2),
+      ", ",
+      round(q3, 2),
+      "]"
     ),
     `Минимум – Максимум` = str_c(
       round(min, 2),
-      " – ", round(max, 2)
+      " – ",
+      round(max, 2)
     )
   ) |>
   select(
@@ -655,12 +669,13 @@ data_join |>
     `Минимум – Максимум`
   ) |>
   flextable() |>
-   set_caption("Лабораторные показатели для носителей и неносителей аллеля ε4") |>
+  set_caption(
+    "Лабораторные показатели для носителей и неносителей аллеля ε4"
+  ) |>
   merge_v(j = "Статус") |>
   valign(j = "Статус", valign = "top") |>
   align(j = 3:7, align = "center", part = "all") |>
   autofit()
-
 ```
 
 4.  Кратко прокомментируйте результаты, приведённые в таблицах.
@@ -696,32 +711,50 @@ data_join
 5.  Оформите результаты в таблицы `flextable` с заголовками на русском или английском языке.
       
 ```{r}
-data_join |> 
+data_join |>
   mutate(
-  BMI = WEIGHT_SCREENING_1/((HEIGHT_SCREENING_1/100)**2),
+    BMI = WEIGHT_SCREENING_1 / ((HEIGHT_SCREENING_1 / 100)**2),
     BMI_category = case_when(
       BMI >= 18.5 & BMI < 25 ~ "Normal",
       BMI >= 25 | BMI < 18.5 ~ "Abnormal",
-      )
+    )
   ) |>
   group_by(
-    ARM) |>
+    ARM
+  ) |>
   summarise(
     n = sum(!is.na(BMI)),
     n_missing = sum(is.na(BMI)),
     mean_sd = paste0(round(mean(BMI), 1), " (", round(sd(BMI), 1), ")"),
-    median_IQR = paste0(round(median(BMI), 1)," [", round(quantile(BMI, 0.25), 1), ", ", 
-                        round(quantile(BMI, 0.75),1), "]"),
+    median_IQR = paste0(
+      round(median(BMI), 1),
+      " [",
+      round(quantile(BMI, 0.25), 1),
+      ", ",
+      round(quantile(BMI, 0.75), 1),
+      "]"
+    ),
     min_max = paste0(round(min(BMI), 1), " - ", round(max(BMI), 1)),
-    norm_BMI = paste0(sum(BMI_category == "Normal")," (", round(sum((BMI_category == "Normal")/n()) *100,1) , ")"),
-    abnorm_BMI = paste0(sum(BMI_category == "Abnormal"), " (", round(sum((BMI_category == "Abnormal")/n()) *100,1) , ")")) |>
+    norm_BMI = paste0(
+      sum(BMI_category == "Normal"),
+      " (",
+      round(sum((BMI_category == "Normal") / n()) * 100, 1),
+      ")"
+    ),
+    abnorm_BMI = paste0(
+      sum(BMI_category == "Abnormal"),
+      " (",
+      round(sum((BMI_category == "Abnormal") / n()) * 100, 1),
+      ")"
+    )
+  ) |>
   rename(
     `Группа лечения` = ARM,
     `Число непустых значений` = n,
     `Число пропусков` = n_missing,
-    `Среднее (SD)`= mean_sd,
+    `Среднее (SD)` = mean_sd,
     `Медиана [Q1, Q3]` = median_IQR,
-    `Минимум-максимум`= min_max,
+    `Минимум-максимум` = min_max,
     `Число участников с нормальным BMI (%)` = norm_BMI,
     `Число участников с отклонением от нормы BMI (%)` = abnorm_BMI
   ) |>
@@ -744,38 +777,56 @@ data_join |>
 data_join |>
   mutate(
     ε4_count = str_count(APOE_genotype, "ε4"),
-    BMI = WEIGHT_SCREENING_1/((HEIGHT_SCREENING_1/100)**2),
+    BMI = WEIGHT_SCREENING_1 / ((HEIGHT_SCREENING_1 / 100)**2),
     BMI_category = case_when(
       BMI >= 18.5 & BMI < 25 ~ "Normal",
       BMI >= 25 | BMI < 18.5 ~ "Abnormal",
-      )
-    ) |>
+    )
+  ) |>
   group_by(ε4_count) |>
   summarise(
     n = sum(!is.na(BMI)),
     n_missing = sum(is.na(BMI)),
     mean_sd = paste0(round(mean(BMI), 1), " (", round(sd(BMI), 1), ")"),
-    median_IQR = paste0(round(median(BMI), 1)," [", round(quantile(BMI, 0.25), 1), ", ", 
-                        round(quantile(BMI, 0.75),1), "]"),
+    median_IQR = paste0(
+      round(median(BMI), 1),
+      " [",
+      round(quantile(BMI, 0.25), 1),
+      ", ",
+      round(quantile(BMI, 0.75), 1),
+      "]"
+    ),
     min_max = paste0(round(min(BMI), 1), " - ", round(max(BMI), 1)),
-    norm_BMI = paste0(sum(BMI_category == "Normal")," (", round(sum((BMI_category == "Normal")/n()) *100,1) , ")"),
-    abnorm_BMI = paste0(sum(BMI_category == "Abnormal"), " (", round(sum((BMI_category == "Abnormal")/n()) *100,1) , ")")) |>
+    norm_BMI = paste0(
+      sum(BMI_category == "Normal"),
+      " (",
+      round(sum((BMI_category == "Normal") / n()) * 100, 1),
+      ")"
+    ),
+    abnorm_BMI = paste0(
+      sum(BMI_category == "Abnormal"),
+      " (",
+      round(sum((BMI_category == "Abnormal") / n()) * 100, 1),
+      ")"
+    )
+  ) |>
   rename(
     `Число аллелей ε4` = ε4_count,
     `Число непустых значений` = n,
     `Число пропусков` = n_missing,
-    `Среднее (SD)`= mean_sd,
+    `Среднее (SD)` = mean_sd,
     `Медиана [Q1, Q3]` = median_IQR,
-    `Минимум-максимум`= min_max,
+    `Минимум-максимум` = min_max,
     `Число участников с нормальным BMI (%)` = norm_BMI,
     `Число участников с отклонением от нормы BMI (%)` = abnorm_BMI
   ) |>
   flextable() |>
-  add_header_lines("Показатель BMI участников в зависимости от числа аллелей ε4") |>
+  add_header_lines(
+    "Показатель BMI участников в зависимости от числа аллелей ε4"
+  ) |>
   bold(part = "header") |>
   align(j = 1:8, align = "center", part = "all") |>
   autofit()
-    
 ```
 
 6.  Кратко прокомментируйте результаты, приведённые в таблицах.
@@ -845,6 +896,14 @@ data_join |>
     names_to = 'INDICATOR',
     values_to = 'VALUE'
   ) |>
+  mutate(
+    INDICATOR = recode(
+      INDICATOR,
+      "BMI" = "Индекс массы тела (BMI), кг/м²",
+      "HGB" = "Гемоглобин (HGB), ммоль/л",
+      "VITB12" = "Витамин B12 (VITB12), пмоль/л"
+    )
+  ) |>
   group_by(INDICATOR, APOE_genotype) |>
   summarise(
     n_valid_val = sum(!is.na(VALUE)),
@@ -875,6 +934,7 @@ data_join |>
   as_grouped_data(groups = "INDICATOR") |>
   flextable() |>
   set_header_labels(
+    INDICATOR = 'Показатель',
     APOE_genotype = 'Генотип APOE',
     n_valid_val = 'Число непустых',
     n_missed_val = 'Число пропусков',
@@ -883,7 +943,7 @@ data_join |>
     min_max = 'Минимум – Максимум'
   ) |>
   add_header_lines(
-    "BMI (кг/м²) и лабораторные показатели в зависимости от генотипа APOE"
+    "BMI и лабораторные показатели (Уровень гемоглобина (HGB), Витамин B12 (VITB12)) в зависимости от генотипа APOE"
   ) |>
   align(align = "center", part = "all") |>
   autofit()
