@@ -24,6 +24,7 @@ format:
 library(tidyverse)
 library(flextable)
 library(gtsummary)
+library(stringr)
 ```
 
 | Команда | Группы лечения (`ARM`) | Лабораторные показатели (`LBTESTCD`) | Визит для веса (`VISIT`) |
@@ -477,6 +478,17 @@ stopifnot(
 data_join <- reduce(list(dm, lb_wide, vs_wide, gf_wide), left_join, by = 'ID')
 data_join
 ```
+```{r}
+data_join <- data_join |> 
+  select(-ends_with(".y")
+  ) |>
+  rename(
+    AGE = AGE.x,
+    SEX = SEX.x,
+    ARM = ARM.x
+  )
+data_join
+```
 
 Проверьте, что число строк в результате совпадает с числом участников в `dm` и что не появилось повторяющихся значений `ID`.
 
@@ -513,13 +525,13 @@ colnames(data_join)
 
 ```{r}
 data_join |>
-  select(ID, ARM.x, HGB, VITB12) |>
+  select(ID, ARM, HGB, VITB12) |>
   pivot_longer(
     cols = c(HGB, VITB12),
     names_to = "LBTESTCD",
     values_to = "VALUE"
   )  |>
-        group_by(ARM.x, LBTESTCD) |>
+        group_by(ARM, LBTESTCD) |>
     summarise(
     n = sum(!is.na(VALUE)),
     n_missing = sum(is.na(VALUE)),
@@ -551,7 +563,7 @@ data_join |>
     )
   ) |>
   select(
-    `Группа лечения` = ARM.x,
+    `Группа лечения` = ARM,
     `Лабораторный показатель`,
     `Число непустых значений` = n,
     `Число пропусков` = n_missing,
@@ -667,8 +679,11 @@ data_join |>
 
 ### 3.2. Анализ витальных показателей
 
-1.  Рассчитайте BMI на скрининге.
-2.  Создайте категорию BMI: норма для значений в диапазоне \[18.5, 25) и не норма для значений вне этого диапазона.
+```{r}
+data_join
+```
+1.  Рассчитайте BMI на скрининге
+2.  Создайте категорию BMI: норма для значений в диапазоне [18.5, 25) и не норма для значений вне этого диапазона.
 3.  Представьте BMI по группам лечения в двух вариантах:
     - как количественный показатель со следующими отформатированными статистиками:
       - число непустых значений
@@ -678,16 +693,101 @@ data_join |>
       - минимум - максимум
     - как категорию норма / не норма:
       - число участников (процент).
-4.  Вычислите число аллелей ε4 (0 / 1 / 2) у каждого участника и представьте BMI по этим категориям.
 5.  Оформите результаты в таблицы `flextable` с заголовками на русском или английском языке.
+      
+```{r}
+data_join |> 
+  mutate(
+  BMI = WEIGHT_SCREENING_1/((HEIGHT_SCREENING_1/100)**2),
+    BMI_category = case_when(
+      BMI >= 18.5 & BMI < 25 ~ "Normal",
+      BMI >= 25 | BMI < 18.5 ~ "Abnormal",
+      )
+  ) |>
+  group_by(
+    ARM) |>
+  summarise(
+    n = sum(!is.na(BMI)),
+    n_missing = sum(is.na(BMI)),
+    mean_sd = paste0(round(mean(BMI), 1), " (", round(sd(BMI), 1), ")"),
+    median_IQR = paste0(round(median(BMI), 1)," [", round(quantile(BMI, 0.25), 1), ", ", 
+                        round(quantile(BMI, 0.75),1), "]"),
+    min_max = paste0(round(min(BMI), 1), " - ", round(max(BMI), 1)),
+    norm_BMI = paste0(sum(BMI_category == "Normal")," (", round(sum((BMI_category == "Normal")/n()) *100,1) , ")"),
+    abnorm_BMI = paste0(sum(BMI_category == "Abnormal"), " (", round(sum((BMI_category == "Abnormal")/n()) *100,1) , ")")) |>
+  rename(
+    `Группа лечения` = ARM,
+    `Число непустых значений` = n,
+    `Число пропусков` = n_missing,
+    `Среднее (SD)`= mean_sd,
+    `Медиана [Q1, Q3]` = median_IQR,
+    `Минимум-максимум`= min_max,
+    `Число участников с нормальным BMI (%)` = norm_BMI,
+    `Число участников с отклонением от нормы BMI (%)` = abnorm_BMI
+  ) |>
+  flextable() |>
+  add_header_lines("Показатель BMI в группах лечения ксаномелином") |>
+  bold(part = "header") |>
+  align(j = 1:8, align = "center", part = "all") |>
+  autofit()
+```
+      
 6.  Кратко прокомментируйте результаты, приведённые в таблицах.
 
+**Таблица "Показатель BMI в группах лечения ксаномелином**:
+Так как показатель BMI рассчитывался по данным скрининга, по полученным данным видно, что группы лечения по дозам ксаномелина, сформированные для исследования, получились однородные, сбалансированные, имеют схожие показатели по BMI:
+1) примерно одинаковое число наблюдений в каждой группе (43 и 41), 2) среднее и медиана, межквартильные размахи сильно пересекаются, 3) в обеих группах большая вариабельность по BMI (разброс); 4) участники с нормальным показателем BMI и с отклонением от нормы BMI равномерно распределены по группам лечения.
+
+4.  Вычислите число аллелей ε4 (0 / 1 / 2) у каждого участника и представьте BMI по этим категориям.
+5.  Оформите результаты в таблицы `flextable` с заголовками на русском или английском языке.
 ```{r}
-# mutate, case_when, group_by, summarise
-# n, mean, median, sd, quantile, IQR
-# flextable
-# см. документацию https://davidgohel.github.io
+data_join |>
+  mutate(
+    ε4_count = str_count(APOE_genotype, "ε4"),
+    BMI = WEIGHT_SCREENING_1/((HEIGHT_SCREENING_1/100)**2),
+    BMI_category = case_when(
+      BMI >= 18.5 & BMI < 25 ~ "Normal",
+      BMI >= 25 | BMI < 18.5 ~ "Abnormal",
+      )
+    ) |>
+  group_by(ε4_count) |>
+  summarise(
+    n = sum(!is.na(BMI)),
+    n_missing = sum(is.na(BMI)),
+    mean_sd = paste0(round(mean(BMI), 1), " (", round(sd(BMI), 1), ")"),
+    median_IQR = paste0(round(median(BMI), 1)," [", round(quantile(BMI, 0.25), 1), ", ", 
+                        round(quantile(BMI, 0.75),1), "]"),
+    min_max = paste0(round(min(BMI), 1), " - ", round(max(BMI), 1)),
+    norm_BMI = paste0(sum(BMI_category == "Normal")," (", round(sum((BMI_category == "Normal")/n()) *100,1) , ")"),
+    abnorm_BMI = paste0(sum(BMI_category == "Abnormal"), " (", round(sum((BMI_category == "Abnormal")/n()) *100,1) , ")")) |>
+  rename(
+    `Число аллелей ε4` = ε4_count,
+    `Число непустых значений` = n,
+    `Число пропусков` = n_missing,
+    `Среднее (SD)`= mean_sd,
+    `Медиана [Q1, Q3]` = median_IQR,
+    `Минимум-максимум`= min_max,
+    `Число участников с нормальным BMI (%)` = norm_BMI,
+    `Число участников с отклонением от нормы BMI (%)` = abnorm_BMI
+  ) |>
+  flextable() |>
+  add_header_lines("Показатель BMI участников в зависимости от числа аллелей ε4") |>
+  bold(part = "header") |>
+  align(j = 1:8, align = "center", part = "all") |>
+  autofit()
+    
 ```
+
+6.  Кратко прокомментируйте результаты, приведённые в таблицах.
+
+**Таблица "Показатель BMI участников в зависимости от числа аллелей ε4"**:
+
+Наблюдается закономерность между числом аллелей ε4 и значением BMI. По мере увеличения числа аллелей ε4:
+1) среднее и медианное значений BMI снижается, однако межквартильные размахи групп с отсутствием аллели ε4 и одной аллелью ε4 пересекаются, поэтому без дополнительных данных нельзя достоверно говорить о различии данных групп;
+2) число участников с отклонениями от нормы BMI в группе уменьшается (с 51.1% в группе участников с отсутствием аллели ε4 до 0 в группе участников с двумя аллелями ε4), разброс значений BMI (минимум-максимум) также сокращается. 
+
+Несмотря на видимую закономерность между числом аллелей ε4 и более низким BMI, необходимо дополнительное исследование на увеличенной выборке, в частности, по группе с двумя аллелями ε4, где сейчас только 3 наблюдения.
+
 
 ### 3.3. Анализ генотипа
 
