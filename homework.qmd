@@ -49,7 +49,7 @@ library(stringr)
 
 ```{r}
 data_clean <- read.csv("data/dm.csv")
-data_clean
+data_clean |> head(5)
 ```
 
 2. Какой формат у этих данных: длинный или широкий? Объясните ответ.
@@ -124,7 +124,7 @@ dm <- data_clean |>
       c('Xanomeline Low Dose', 'Xanomeline High Dose')
     )
   )
-dm
+dm |> head(5)
 ```
 
 ### 1.2. Лабораторные измерения
@@ -140,7 +140,7 @@ dm
 
 ```{r}
 lb_data <- read_csv("data/lb.csv")
-lb_data
+lb_data |> head(5)
 ```
 
 ```{r}
@@ -263,7 +263,7 @@ stopifnot(nrow(lb_wide) == n_distinct(lb_wide$ID))
 
 ```{r}
 vs_data <- read_csv("data/vs.csv")
-vs_data
+vs_data |> head(5)
 ```
 ```{r}
 vs <- vs_data |>
@@ -291,7 +291,9 @@ vs |>
   filter(VSTESTCD == 'HEIGHT' | VSTESTCD == 'WEIGHT') |>
   count(VISIT) # визиты, удовлетворяющие условию
 ```
+
 4.  Оставьте только участников своей команды. Используйте для этого датафрейм `dm`, созданный координатором в разделе 1.1.
+
 ```{r}
 vs_clean <- vs |>
   semi_join(dm, by = 'ID')
@@ -321,7 +323,7 @@ vs_wide <- vs_clean |>
 vs_wide |>
   count(ID, test_visit)
 
-vs_wide
+vs_wide |> head(5)
 ```
 ```{r}
 vs_wide <- vs_wide |>
@@ -351,8 +353,9 @@ data_gf_clean <- read.csv("data/gf.csv") |>
   select(USUBJID, GFORRES, GFSYM, GFPVRID, VISIT) |>
   rename(ID = USUBJID)
 
-data_gf_clean
+data_gf_clean |> head(5)
 ```
+
 2.  Какой формат у этих данных: длинный или широкий? Объясните ответ. Какое минимальное и максимальное число строк на одного участника?
 
 Ответ: Формат длинный, каждое измерение записано отдельной строкой.
@@ -361,8 +364,9 @@ data_gf_clean
 
 ```{r}
 dm_gf <- left_join(dm, data_gf_clean, by = 'ID')
-dm_gf
+dm_gf |> head(5)
 ```
+
 4.  Оставьте только ген `APOE` и варианты с идентификаторами `rs429358` и `rs7412`.
 
 ```{r}
@@ -370,7 +374,8 @@ dm_gf |>
   filter(
     GFSYM == 'APOE' &
       GFPVRID == c('rs429358', 'rs7412')
-  )
+  ) |>
+  head(5)
 ```
 
 5.  По таблице ниже определите генотип APOE для каждого участника. Для комбинации, которой нет в таблице, присвойте значение `NA`.
@@ -476,7 +481,7 @@ stopifnot(
 
 ```{r}
 data_join <- reduce(list(dm, lb_wide, vs_wide, gf_wide), left_join, by = 'ID')
-data_join
+data_join |> head(5)
 ```
 ```{r}
 data_join <- data_join |>
@@ -486,7 +491,7 @@ data_join <- data_join |>
     SEX = SEX.x,
     ARM = ARM.x
   )
-data_join
+data_join |> head(5)
 ```
 
 Проверьте, что число строк в результате совпадает с числом участников в `dm` и что не появилось повторяющихся значений `ID`.
@@ -695,8 +700,9 @@ data_join |>
 ### 3.2. Анализ витальных показателей
 
 ```{r}
-data_join
+data_join |> head(5)
 ```
+
 1.  Рассчитайте BMI на скрининге
 2.  Создайте категорию BMI: норма для значений в диапазоне [18.5, 25) и не норма для значений вне этого диапазона.
 3.  Представьте BMI по группам лечения в двух вариантах:
